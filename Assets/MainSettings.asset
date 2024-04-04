@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5fb50aecec7d534b8d6dfb476c9c288, type: 3}
+  m_Name: MainSettings
+  m_EditorClassIdentifier: 
+  Width: 15
+  Hight: 10
+  TilePrefabs:
+  - Id: Tile.Circle
+    Prefab: {fileID: 6490972516695673823, guid: f083b65d184e2ff42a6ee7d8e895f204, type: 3}
+  - Id: Tile.Square
+    Prefab: {fileID: 1770346090776038294, guid: 0794aa31129648d469145fc47e7925a1, type: 3}
+  - Id: Tile.Hexagon
+    Prefab: {fileID: 1997721379107724857, guid: 09593d92c39518147bafa8f72804504d, type: 3}
+  - Id: Tile.Triangle
+    Prefab: {fileID: 4138197178445835496, guid: fc9d7440d94b2724b9de8033b5e689f7, type: 3}
