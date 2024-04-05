@@ -69,30 +69,10 @@ namespace SimpleMatch
 
                 await Animation.AnimateSwapAsync(tile.transform, secondTile.transform);
 
-                List<TileModel> movedTiles = new List<TileModel>();
-                List<TileModel> createdTiles = new List<TileModel>();
-                var swapResult = _gameModel.Swap(tileModel, secondTileModel, movedTiles, createdTiles);
+                var swapResult = _gameModel.Swap(tileModel, secondTileModel);
                 if (swapResult.HasMatch)
                 {
-                    foreach (var matchedTile in swapResult.MatchedTiles)
-                    {
-                        RemoveTile(matchedTile); // Todo пофиксить ошибки при запуске
-                    }
-
-                    Task[] movesTasks = new Task[movedTiles.Count];
-                    for (var i = 0; i < movedTiles.Count; i++)
-                    {
-                        var movedTile = movedTiles[i];
-                        movesTasks[i] = Animation.AnimateMoveAsync(_modelToTile[movedTile].transform, _mapController.GetTileWorldPosition(movedTile.Position));
-                    }
-
-                    await Task.WhenAll(movesTasks);
-                        
-                    foreach (var createdTile in createdTiles)
-                    {
-                        CreateTile(createdTile);
-                    }
-
+                    await HandleSwapAsync(swapResult);
                 }
                 else
                 {
@@ -106,6 +86,28 @@ namespace SimpleMatch
             finally
             {
                 _handleSwipe = true;
+            }
+        }
+
+        private async Task HandleSwapAsync(SwapResultModel swapResult)
+        {
+            foreach (var matchedTile in swapResult.MatchedTiles)
+            {
+                RemoveTile(matchedTile); 
+            }
+
+            Task[] movesTasks = new Task[swapResult.MovedTiles.Count];
+            for (var i = 0; i < swapResult.MovedTiles.Count; i++)
+            {
+                var movedTile = swapResult.MovedTiles[i];
+                movesTasks[i] = Animation.AnimateMoveAsync(_modelToTile[movedTile].transform, _mapController.GetTileWorldPosition(movedTile.Position));
+            }
+
+            await Task.WhenAll(movesTasks);
+                        
+            foreach (var createdTile in swapResult.CreatedTiles)
+            {
+                CreateTile(createdTile);
             }
         }
 

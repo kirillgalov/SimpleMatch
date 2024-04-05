@@ -64,7 +64,7 @@ namespace SimpleMatch
             CreateTiles(Min, Max);
         }
 
-        public SwapResultModel Swap(TileModel a, TileModel b, ICollection<TileModel> movedTiles, ICollection<TileModel> createdTiles)
+        public SwapResultModel Swap(TileModel a, TileModel b)
         {
             SwapModels(a, b);
             
@@ -74,26 +74,29 @@ namespace SimpleMatch
                 return SwapResultModel.Fail();
             }
 
+
             _positionToTile.Remove(tiles.Pos1, out TileModel t1);
             _positionToTile.Remove(tiles.Pos2, out TileModel t2);
             _positionToTile.Remove(tiles.Pos3, out TileModel t3);
+
+            SwapResultModel swapResult = SwapResultModel.Match(t1, t2, t3);
             
             const int verticalMatchHeight = 3, horizontalMatchHeight = 1;
             if (tiles.IsVertical())
             {
-                MoveColumnDown(tiles.GetMinY(), verticalMatchHeight, movedTiles, out var startHole);
+                MoveColumnDown(tiles.GetMinY(), verticalMatchHeight, swapResult.MovedTiles, out var startHole);
                 Vector2Int endHole = new Vector2Int(startHole.x, Max.y);
-                CreateTiles(startHole, endHole, createdTiles);
+                CreateTiles(startHole, endHole, swapResult.CreatedTiles);
             }
             else
             {
-                MoveColumnDown(tiles.Pos1, horizontalMatchHeight, movedTiles, out var hole1);
-                MoveColumnDown(tiles.Pos2, horizontalMatchHeight, movedTiles, out var hole2);
-                MoveColumnDown(tiles.Pos3, horizontalMatchHeight, movedTiles, out var hole3);
-                CreateTiles(hole1, hole3, createdTiles);
+                MoveColumnDown(tiles.Pos1, horizontalMatchHeight, swapResult.MovedTiles, out var hole1);
+                MoveColumnDown(tiles.Pos2, horizontalMatchHeight, swapResult.MovedTiles, out var hole2);
+                MoveColumnDown(tiles.Pos3, horizontalMatchHeight, swapResult.MovedTiles, out var hole3);
+                CreateTiles(hole1, hole3, swapResult.CreatedTiles);
             }
 
-            return SwapResultModel.Match(new[] { t1, t2, t3 });
+            return swapResult;
         }
 
         private void MoveColumnDown(Vector2Int hole, int height, ICollection<TileModel> movedTiles, out Vector2Int finalHole)

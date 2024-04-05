@@ -53,7 +53,7 @@ namespace SimpleMatch
         {
             if (!_inPool.Add(tile))
             {
-                throw new Exception();
+                throw new ArgumentException("Already in pool", nameof(tile));
             }
 
             if (_pool.TryGetValue(id, out var tiles))
