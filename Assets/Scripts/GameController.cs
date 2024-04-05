@@ -57,7 +57,7 @@ namespace SimpleMatch
             }
 
             _handleSwipe = false;
-            
+            SwapResultModel swapResult = null;
             try
             {
                 if (!TryGetSecondTile(tile, direction, out var secondTileModel)
@@ -69,7 +69,7 @@ namespace SimpleMatch
 
                 await Animation.AnimateSwapAsync(tile.transform, secondTile.transform);
 
-                var swapResult = _gameModel.Swap(tileModel, secondTileModel);
+                swapResult = _gameModel.Swap(tileModel, secondTileModel);
                 if (swapResult.HasMatch)
                 {
                     await HandleSwapAsync(swapResult);
@@ -86,6 +86,7 @@ namespace SimpleMatch
             finally
             {
                 _handleSwipe = true;
+                swapResult?.Dispose();
             }
         }
 
