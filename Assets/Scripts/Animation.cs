@@ -28,5 +28,23 @@ namespace SimpleMatch
             first.position = sPos;
             second.position = fPos;
         }
+
+        public static async Task AnimateMoveAsync(Transform transform, Vector3 end)
+        {
+            const float duration = 0.25f;
+            Vector3 startPos = transform.position;
+            float startTime = Time.time;
+            while (Time.time < startTime + duration)
+            {
+                float progress = (Time.time - startTime) / duration;
+                transform.position = Vector3.Lerp(startPos, end, progress);
+                await Task.Yield();
+                if (transform == null)
+                {
+                    return;
+                }
+            }
+            transform.position = end;
+        }
     }
 }

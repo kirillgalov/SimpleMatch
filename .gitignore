@@ -3,7 +3,9 @@ Logs
 obj
 Temp
 UserSettings
-*.csproj
-*.sln
 
 .idea
+
+*.csproj
+*.sln
+*.DotSettings.user

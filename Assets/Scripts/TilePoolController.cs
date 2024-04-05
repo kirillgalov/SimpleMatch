@@ -9,9 +9,9 @@ namespace SimpleMatch
         [SerializeField] 
         private Settings _settings;
 
+        private readonly HashSet<TileController> _inPool = new();
         private IReadOnlyDictionary<TileDescriptionId, TileController> _prefabs;
         private IReadOnlyDictionary<TileDescriptionId, Stack<TileController>> _pool;
-        private HashSet<TileController> _inPool;
 
         private void Awake()
         {
@@ -37,6 +37,7 @@ namespace SimpleMatch
                 if (tiles.TryPop(out var tile))
                 {
                     _inPool.Remove(tile);
+                    tile.gameObject.SetActive(true);
                     return tile;
                 }
                 else if (_prefabs.TryGetValue(id, out var prefab))
@@ -57,6 +58,7 @@ namespace SimpleMatch
 
             if (_pool.TryGetValue(id, out var tiles))
             {
+                tile.gameObject.SetActive(false);
                 tiles.Push(tile);
             }
         }

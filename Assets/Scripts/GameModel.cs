@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace SimpleMatch
 {
@@ -26,24 +24,21 @@ namespace SimpleMatch
             return model;
         }
 
-        public void CreateMap(int width, int height)
+
+        private void CreateTiles(Vector2Int start, Vector2Int end, ICollection<TileModel> createdTiles = null)
         {
-            Vector2Int centerShift = new Vector2Int(width / 2, height / 2);
-            Max = centerShift - Vector2Int.one;
-            Min = -centerShift;
-            Center = centerShift;
             var descriptions = TileDescription.Descriptions.ToList();
-            for (int x = 0; x < width; x++)
+            for (int x = start.x; x <= end.x; x++)
             {
-                for (int y = 0; y < height; y++)
+                for (int y = start.y; y <= end.y; y++)
                 {
                     Shuffle(descriptions);
                     bool found = false;
-                    Vector2Int newTilePos = new Vector2Int(x, y) - centerShift;
+                    Vector2Int newTilePos = new Vector2Int(x, y);
                     foreach (var description in descriptions)
                     {
-                        
-                        CreateTile(newTilePos, description);
+                        TileModel model = CreateTile(newTilePos, description);
+                        createdTiles?.Add(model);
                         if (!FindMatch(newTilePos, out _))
                         {
                             found = true;
@@ -59,43 +54,58 @@ namespace SimpleMatch
                 }
             }
         }
+        
+        public void CreateMap(int width, int height)
+        {
+            Vector2Int center = new Vector2Int(width / 2, height / 2);
+            Max = center - Vector2Int.one;
+            Min = -center;
+            Center = center;
+            CreateTiles(Min, Max);
+        }
 
-        public SwapResultModel Swap(TileModel a, TileModel b)
+        public SwapResultModel Swap(TileModel a, TileModel b, ICollection<TileModel> movedTiles, ICollection<TileModel> createdTiles)
         {
             SwapModels(a, b);
-            TilesFrame tiles = default;
-            if (FindMatch(a.Position, out tiles) || FindMatch(b.Position, out tiles))
-            {
-                _positionToTile.Remove(tiles.Pos1, out TileModel t1);
-                _positionToTile.Remove(tiles.Pos2, out TileModel t2);
-                _positionToTile.Remove(tiles.Pos3, out TileModel t3);
-
-                if (tiles.IsVertical())
-                {
-                    MoveColumnDown(tiles.GetMinY(), true, out var finalHole);
-                    
-                }
             
-                return SwapResultModel.Match(new[] { t1, t2, t3 });
+            if (!FindMatch(a.Position, b.Position, out var tiles))
+            {
+                SwapModels(a, b);
+                return SwapResultModel.Fail();
+            }
+
+            _positionToTile.Remove(tiles.Pos1, out TileModel t1);
+            _positionToTile.Remove(tiles.Pos2, out TileModel t2);
+            _positionToTile.Remove(tiles.Pos3, out TileModel t3);
+            
+            const int verticalMatchHeight = 3, horizontalMatchHeight = 1;
+            if (tiles.IsVertical())
+            {
+                MoveColumnDown(tiles.GetMinY(), verticalMatchHeight, movedTiles, out var startHole);
+                Vector2Int endHole = new Vector2Int(startHole.x, Max.y);
+                CreateTiles(startHole, endHole, createdTiles);
             }
             else
             {
-                SwapModels(a,b);
-                return SwapResultModel.Fail();
+                MoveColumnDown(tiles.Pos1, horizontalMatchHeight, movedTiles, out var hole1);
+                MoveColumnDown(tiles.Pos2, horizontalMatchHeight, movedTiles, out var hole2);
+                MoveColumnDown(tiles.Pos3, horizontalMatchHeight, movedTiles, out var hole3);
+                CreateTiles(hole1, hole3, createdTiles);
             }
+
+            return SwapResultModel.Match(new[] { t1, t2, t3 });
         }
 
-        private void MoveColumnDown(Vector2Int hole, bool isVerticalStep, out Vector2Int finalHole)
+        private void MoveColumnDown(Vector2Int hole, int height, ICollection<TileModel> movedTiles, out Vector2Int finalHole)
         {
-            const int horizontalStep = 1, verticalStep = 3;
-            int step = isVerticalStep ? verticalStep : horizontalStep;
             while (hole.y < Max.y)
             {
-                var nextTilePos = new Vector2Int(hole.x, hole.y + step);
+                var nextTilePos = new Vector2Int(hole.x, hole.y + height);
                 if (_positionToTile.Remove(nextTilePos, out var nextTile))
                 {
                     nextTile.Position = hole;
                     _positionToTile[nextTile.Position] = nextTile;
+                    movedTiles.Add(nextTile);
                     hole += Vector2Int.up;
                 }
                 else
@@ -115,10 +125,16 @@ namespace SimpleMatch
             (a.Position, b.Position) = (b.Position, a.Position);
         }
 
+        private bool FindMatch(Vector2Int pos1, Vector2Int pos2, out TilesFrame tiles)
+        {
+            return FindMatch(pos1, out tiles) || FindMatch(pos2, out tiles);
+        }
+        
         private bool FindMatch(Vector2Int pos, out TilesFrame match)
         {
             AddCheckTile(pos, _tilesToCheck);
             bool found = false;
+            match = default;
             foreach (var tilesFrame in _tilesToCheck)
             {
                 if (IsMatch(tilesFrame.Pos1, tilesFrame.Pos2, tilesFrame.Pos3))
@@ -129,7 +145,6 @@ namespace SimpleMatch
                 }
             }
             _tilesToCheck.Clear();
-            match = default;
             return found;
         }
 
@@ -181,23 +196,8 @@ namespace SimpleMatch
             public bool IsVertical() => Pos1.x == Pos2.x && Pos2.x == Pos3.x;
 
             public Vector2Int GetMinY() => new Vector2Int(Pos1.x, Mathf.Min(Pos1.y, Mathf.Min(Pos2.y, Pos3.y)));
-        }
-    }
 
-    public class SwapResultModel
-    {
-        public static SwapResultModel Fail() => FailModel;
-        public static SwapResultModel Match(IEnumerable<TileModel> matchedTiles) => new SwapResultModel(true, matchedTiles);
-        
-        private static readonly SwapResultModel FailModel = new(false, Enumerable.Empty<TileModel>());
-        
-        public bool HasMatch { get; }
-        public IEnumerable<TileModel> MatchedTiles { get; }
-        
-        private SwapResultModel(bool hasMatch, IEnumerable<TileModel> matchedTiles)
-        {
-            HasMatch = hasMatch;
-            MatchedTiles = matchedTiles;
+            public override string ToString() => $"p1: {Pos1}, p2: {Pos2}, p3: {Pos3};";
         }
     }
 }
