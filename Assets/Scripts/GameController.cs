@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Profiling;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 namespace SimpleMatch
 {
     public class GameController : MonoBehaviour
     {
-        [SerializeField] 
-        private Transform _tileParent;
-        
         [SerializeField] 
         private Settings _settings;
 
@@ -19,14 +18,17 @@ namespace SimpleMatch
 
         [SerializeField] 
         private TilePoolController _poolController;
+
+        [SerializeField] 
+        private Button _simulate;
         
-        
-        private readonly GameModel _gameModel = new();
         private readonly Dictionary<TileController, TileModel> _tileToModel = new();
         private readonly Dictionary<TileModel, TileController> _modelToTile = new();
-        
+        private readonly GameModel _gameModel = new();
+        private readonly MatchModel _matchModel = new();
         private bool _handleSwipe = true;
-        
+
+
         private void Start()
         {
             Profiler.BeginSample("_gameModel.CreateMap");
@@ -42,11 +44,37 @@ namespace SimpleMatch
         private void OnEnable()
         {
             TileController.TileSwipeDetected += TileControllerOnTileSwipeDetected;
+            _simulate.onClick.AddListener(SimulatePlayers);
         }
 
         private void OnDisable()
         {
             TileController.TileSwipeDetected -= TileControllerOnTileSwipeDetected;
+            _simulate.onClick.RemoveListener(SimulatePlayers);
+        }
+
+        private async void SimulatePlayers()
+        {
+
+            while (true)
+            {
+                
+                var (a, b) = _gameModel.FindPossibleMatches();
+                var aTile = _modelToTile[a];
+                var bTile = _modelToTile[b];
+                
+                await Animation.AnimateSwapAsync(aTile.transform, bTile.transform);
+                
+                _gameModel.Swap(a, b, _matchModel);
+                if (!_matchModel.HasMatch)
+                {
+                    await Animation.AnimateSwapAsync(aTile.transform, bTile.transform);
+                    return;
+                }
+                await HandleMatchAsync(_matchModel);
+                await HandleCascadeMatches(_matchModel);
+                _matchModel.Clear();
+            }
         }
 
         private async void TileControllerOnTileSwipeDetected(TileController tile, Vector2Int direction)
@@ -57,27 +85,25 @@ namespace SimpleMatch
             }
 
             _handleSwipe = false;
-            SwapResultModel swapResult = null;
             try
             {
-                if (!TryGetSecondTile(tile, direction, out var secondTileModel)
-                    || !_modelToTile.TryGetValue(secondTileModel, out var secondTile)
-                    || !_tileToModel.TryGetValue(tile, out var tileModel))
+                if (!TryGetSecondTile(tile, direction, out var secondTileModel) || 
+                    !_modelToTile.TryGetValue(secondTileModel, out var secondTile) || 
+                    !_tileToModel.TryGetValue(tile, out var tileModel))
                 {
                     return;
                 }
 
                 await Animation.AnimateSwapAsync(tile.transform, secondTile.transform);
 
-                swapResult = _gameModel.Swap(tileModel, secondTileModel);
-                if (swapResult.HasMatch)
-                {
-                    await HandleSwapAsync(swapResult);
-                }
-                else
+                _gameModel.Swap(tileModel, secondTileModel, _matchModel);
+                if (!_matchModel.HasMatch)
                 {
                     await Animation.AnimateSwapAsync(tile.transform, secondTile.transform);
+                    return;
                 }
+                await HandleMatchAsync(_matchModel);
+                await HandleCascadeMatches(_matchModel);
             }
             catch (Exception e)
             {
@@ -86,27 +112,37 @@ namespace SimpleMatch
             finally
             {
                 _handleSwipe = true;
-                swapResult?.Dispose();
+                _matchModel.Clear();
             }
         }
 
-        private async Task HandleSwapAsync(SwapResultModel swapResult)
+        private async Task HandleCascadeMatches(MatchModel matchModel)
         {
-            foreach (var matchedTile in swapResult.MatchedTiles)
+            _gameModel.FindAndMatch(matchModel);
+            while (matchModel.HasMatch)
+            {
+                await HandleMatchAsync(matchModel);
+                _gameModel.FindAndMatch(matchModel);
+            }
+        }
+
+        private async Task HandleMatchAsync(MatchModel match)
+        {
+            foreach (var matchedTile in match.MatchedTiles)
             {
                 RemoveTile(matchedTile); 
             }
 
-            Task[] movesTasks = new Task[swapResult.MovedTiles.Count];
-            for (var i = 0; i < swapResult.MovedTiles.Count; i++)
+            Task[] movesTasks = new Task[match.MovedTiles.Count];
+            for (var i = 0; i < match.MovedTiles.Count; i++)
             {
-                var movedTile = swapResult.MovedTiles[i];
+                var movedTile = match.MovedTiles[i];
                 movesTasks[i] = Animation.AnimateMoveAsync(_modelToTile[movedTile].transform, _mapController.GetTileWorldPosition(movedTile.Position));
             }
 
             await Task.WhenAll(movesTasks);
                         
-            foreach (var createdTile in swapResult.CreatedTiles)
+            foreach (var createdTile in match.CreatedTiles)
             {
                 CreateTile(createdTile);
             }
@@ -135,7 +171,5 @@ namespace SimpleMatch
             Vector2Int secondTilePos = _mapController.GetNextTilePos(tilePosition, direction);
             return _gameModel.PositionToTile.TryGetValue(secondTilePos, out secondTile);
         }
-
-        
     }
 }

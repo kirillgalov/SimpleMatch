@@ -8,6 +8,7 @@ namespace SimpleMatch
         {
             InstanceId = instanceId;
             Description = description;
+            Position = Vector2Int.zero;
         }
 
         public int InstanceId { get; }
