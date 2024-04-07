@@ -16,6 +16,7 @@ namespace SimpleMatch
         private bool _detectSwipe;
         private static readonly float _swipeTreshold = 0.15f;
         private Vector2 _movedDistance;
+        public TileDescriptionId DescriptionId { get; set; }
         
         public void OnPointerDown(PointerEventData eventData)
         {

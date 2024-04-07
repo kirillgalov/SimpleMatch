@@ -51,10 +51,9 @@ namespace SimpleMatch
 
         private void SimulatePlayers()
         {
-
             int reshuffleCount = 0;
             Profiler.BeginSample("SimulatePlayers");
-            for(int i = 0; i < 100_000; i++)
+            for(int i = 0; i < 100_0; i++)
             {
                 var (a, b) = _gameModel.FindPossibleMatches();
 
@@ -66,13 +65,17 @@ namespace SimpleMatch
                 }
                 
                 _gameModel.Swap(a, b, _matchModel);
+                while (_matchModel.HasMatch)
+                {
+                    _gameModel.FindAndMatch(_matchModel);
+                }
                 _matchModel.Clear();
             }
             Profiler.EndSample();
             Debug.Log($"Reshuffle count: {reshuffleCount}");
             RemoveAll();
             CreateAll(_gameModel.Tiles);
-            
+            // Debug.Break();
         }
 
         private async void TileControllerOnTileSwipeDetected(TileController tile, Vector2Int direction)
@@ -158,7 +161,7 @@ namespace SimpleMatch
         {
             foreach (var (model, controller) in _modelToTile)
             {
-                _poolController.Return(model.Description.Id, controller);
+                _poolController.Return(controller.DescriptionId, controller);
             }
             _modelToTile.Clear();
             _tileToModel.Clear();
@@ -176,7 +179,7 @@ namespace SimpleMatch
         {
             _modelToTile.Remove(tile, out var tileController);
             _tileToModel.Remove(tileController);
-            _poolController.Return(tile.Description.Id, tileController);
+            _poolController.Return(tileController.DescriptionId, tileController);
         }
 
         private bool TryGetSecondTile(TileController tile, Vector2Int direction, out TileModel secondTile)

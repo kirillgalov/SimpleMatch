@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace SimpleMatch
 {
@@ -42,7 +43,9 @@ namespace SimpleMatch
                 }
                 else if (_prefabs.TryGetValue(id, out var prefab))
                 {
-                    return Instantiate(prefab, Vector3.zero, Quaternion.identity, transform);
+                    var tileController = Instantiate(prefab, Vector3.zero, Quaternion.identity, transform);
+                    tileController.DescriptionId = id;
+                    return tileController;
                 }
             }
 

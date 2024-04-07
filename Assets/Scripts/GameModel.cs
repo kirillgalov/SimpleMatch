@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -60,6 +59,7 @@ namespace SimpleMatch
                     if (!found)
                     {
                         Debug.LogError($"Tile not found pos:{newTilePos}");
+                        createdTiles?.Add(CreateTile(newTilePos, TileDescription.Hexagon));
                     }
                     
                 }
@@ -98,13 +98,6 @@ namespace SimpleMatch
                 
                 _tilesToCheck.Add(TilesFrame.WithBreak(pos, Vector2Int.down));
                 _tilesToCheck.Add(TilesFrame.WithBreak(pos, Vector2Int.left));
-                _tilesToCheck.Add(TilesFrame.WithBreak(pos, Vector2Int.up));
-                _tilesToCheck.Add(TilesFrame.WithBreak(pos, Vector2Int.right));
-                
-                _tilesToCheck.Add(TilesFrame.WithCentralBreak(pos, Vector2Int.right));
-                _tilesToCheck.Add(TilesFrame.WithCentralBreak(pos, Vector2Int.left));
-                _tilesToCheck.Add(TilesFrame.WithCentralBreak(pos, Vector2Int.down));
-                _tilesToCheck.Add(TilesFrame.WithCentralBreak(pos, Vector2Int.up));
                 
                 foreach (var tiles in _tilesToCheck)
                 {
@@ -132,7 +125,7 @@ namespace SimpleMatch
             matchModel.Clear();
             foreach (var position in _positionToTile.Keys)
             {
-                if (FindMatch(position, out var tiles))
+                if (FindMatch(position, out var tiles, true))
                 {
                     HandleMatch(tiles, matchModel);
                     return;
@@ -200,9 +193,13 @@ namespace SimpleMatch
             return FindMatch(pos1, out tiles) || FindMatch(pos2, out tiles);
         }
         
-        private bool FindMatch(Vector2Int pos, out TilesFrame match)
+        private bool FindMatch(Vector2Int pos, out TilesFrame match, bool useSimpleCheck =  false)
         {
-            AddCheckTile(pos, _tilesToCheck);
+            if (useSimpleCheck)
+                SimpleCheck(pos, _tilesToCheck);
+            else
+                AddCheckTile(pos, _tilesToCheck);
+            
             bool found = false;
             match = default;
             foreach (var tilesFrame in _tilesToCheck)
@@ -226,6 +223,12 @@ namespace SimpleMatch
             
             tilesToCheck.Add(TilesFrame.WithoutBreaks(position + 2 * Vector2Int.up, Vector2Int.down));
             tilesToCheck.Add(TilesFrame.WithoutBreaks(position + Vector2Int.up, Vector2Int.down));
+            tilesToCheck.Add(TilesFrame.WithoutBreaks(position, Vector2Int.down));
+        }
+        
+        private static void SimpleCheck(Vector2Int position, List<TilesFrame> tilesToCheck)
+        {
+            tilesToCheck.Add(TilesFrame.WithoutBreaks(position, Vector2Int.right));
             tilesToCheck.Add(TilesFrame.WithoutBreaks(position, Vector2Int.down));
         }
 
