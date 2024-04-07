@@ -554,7 +554,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1025161732}
-  - component: {fileID: 1025161731}
   - component: {fileID: 1025161733}
   m_Layer: 0
   m_Name: Startup
@@ -563,22 +562,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1025161731
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1025161730}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 04b8b03fca2a8134f896338ddf5612dc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _settings: {fileID: 11400000, guid: b1b327c8835d12f46930aec4a3ff63fa, type: 2}
-  _fieldGrid: {fileID: 20433010}
-  _tileParent: {fileID: 1819831476}
-  _raycaster: {fileID: 0}
 --- !u!4 &1025161732
 Transform:
   m_ObjectHideFlags: 0

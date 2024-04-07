@@ -53,7 +53,7 @@ namespace SimpleMatch
         {
             int reshuffleCount = 0;
             Profiler.BeginSample("SimulatePlayers");
-            for(int i = 0; i < 100_0; i++)
+            for(int i = 0; i < 1000; i++)
             {
                 var (a, b) = _gameModel.FindPossibleMatches();
 
