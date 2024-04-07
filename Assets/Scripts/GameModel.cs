@@ -11,8 +11,9 @@ namespace SimpleMatch
         private readonly Dictionary<Vector2Int, TileModel> _positionToTile = new Dictionary<Vector2Int, TileModel>();
         private readonly List<TilesFrame> _tilesToCheck = new();
         private readonly List<TileDescription> _tileDescriptionsCache = TileDescription.Descriptions.ToList();
-        private int _tileIds = 1;
 
+        public int Width { get; private set; }
+        public int Height { get; private set; }
         public Vector2Int Min { get; private set; }
         public Vector2Int Max { get; private set; }
         public Vector2Int Center { get; private set; }
@@ -22,7 +23,8 @@ namespace SimpleMatch
         public TileModel CreateTile(Vector2Int pos, TileDescription tileDescription = null)
         {
             tileDescription ??= TileDescription.Descriptions[Random.Range(0, TileDescription.Descriptions.Count)];
-            var model = new TileModel(_tileIds++, tileDescription) { Position = pos };
+            var model = TileModel.Create(tileDescription);
+            model.Position = pos;
             _positionToTile[pos] = model;
             return model;
         }
@@ -41,8 +43,13 @@ namespace SimpleMatch
                     foreach (var description in descriptions)
                     {
                         TileModel model = CreateTile(newTilePos, description);
-                        
-                        if (!FindMatch(newTilePos, out _))
+
+                        if (FindMatch(newTilePos, out _))
+                        {
+                            _positionToTile.Remove(model.Position);
+                            model.Dispose();
+                        }
+                        else
                         {
                             found = true;
                             createdTiles?.Add(model);
@@ -65,6 +72,8 @@ namespace SimpleMatch
             Max = center - Vector2Int.one;
             Min = -center;
             Center = center;
+            Width = width;
+            Height = height;
             CreateTiles(Min, Max);
         }
 
@@ -106,7 +115,16 @@ namespace SimpleMatch
                 }
             }
 
-            throw new Exception();
+            return (null, null);
+        }
+        
+        public void Reshuffle()
+        {
+            foreach (var model in _positionToTile.Values) 
+                model.Dispose();
+            
+            _positionToTile.Clear();
+            CreateMap(Width, Height);
         }
 
         public void FindAndMatch(MatchModel matchModel)
@@ -231,7 +249,7 @@ namespace SimpleMatch
                 (items[i], items[rand]) = (items[rand], items[i]);
             }
         }
-        
+
         private readonly struct TilesFrame
         {
             public static TilesFrame WithoutBreaks(Vector2Int origin, Vector2Int direction)

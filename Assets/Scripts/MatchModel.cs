@@ -11,6 +11,7 @@ namespace SimpleMatch
 
         public void Clear()
         {
+            MatchedTiles.ForEach(t => t.Dispose());
             MatchedTiles.Clear();
             CreatedTiles.Clear();
             MovedTiles.Clear();

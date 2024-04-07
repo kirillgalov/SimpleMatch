@@ -1,25 +1,46 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace SimpleMatch
 {
-    public class TileModel
+    public class TileModel : IDisposable
     {
-        public TileModel(int instanceId, TileDescription description)
+        private static readonly Stack<TileModel> Pool = new Stack<TileModel>(64);
+        private static int _seed = 1;
+        
+        public static TileModel Create(TileDescription description)
         {
-            InstanceId = instanceId;
+            if (!Pool.TryPop(out var model))
+            {
+                model = new TileModel(description);
+            }
+
+            model.Description = description;
+            return model;
+        } 
+        
+        public TileModel(TileDescription description)
+        {
+            Id = _seed++;
             Description = description;
             Position = Vector2Int.zero;
         }
 
-        public int InstanceId { get; }
+        public int Id { get; }
 
-        public TileDescription Description { get; }
+        public TileDescription Description { get; private set; }
 
         public Vector2Int Position { get; set; }
 
         public override string ToString()
         {
-            return $"InstanceId: {InstanceId}, Description: {Description}, Position: {Position}";
+            return $"InstanceId: {Id}, Description: {Description}, Position: {Position}";
+        }
+
+        public void Dispose()
+        {
+            Pool.Push(this);
         }
     }
 }

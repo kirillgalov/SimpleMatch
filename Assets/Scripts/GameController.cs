@@ -34,11 +34,7 @@ namespace SimpleMatch
             Profiler.BeginSample("_gameModel.CreateMap");
             _gameModel.CreateMap(_settings.Width, _settings.Hight);
             Profiler.EndSample();
-            
-            foreach (var tileModel in _gameModel.Tiles)
-            {
-                CreateTile(tileModel);
-            }
+            CreateAll(_gameModel.Tiles);
         }
 
         private void OnEnable()
@@ -53,28 +49,30 @@ namespace SimpleMatch
             _simulate.onClick.RemoveListener(SimulatePlayers);
         }
 
-        private async void SimulatePlayers()
+        private void SimulatePlayers()
         {
 
-            while (true)
+            int reshuffleCount = 0;
+            Profiler.BeginSample("SimulatePlayers");
+            for(int i = 0; i < 100_000; i++)
             {
-                
                 var (a, b) = _gameModel.FindPossibleMatches();
-                var aTile = _modelToTile[a];
-                var bTile = _modelToTile[b];
-                
-                await Animation.AnimateSwapAsync(aTile.transform, bTile.transform);
+
+                if (a == null || b == null)
+                {
+                    reshuffleCount++;
+                    _gameModel.Reshuffle();
+                    continue;
+                }
                 
                 _gameModel.Swap(a, b, _matchModel);
-                if (!_matchModel.HasMatch)
-                {
-                    await Animation.AnimateSwapAsync(aTile.transform, bTile.transform);
-                    return;
-                }
-                await HandleMatchAsync(_matchModel);
-                await HandleCascadeMatches(_matchModel);
                 _matchModel.Clear();
             }
+            Profiler.EndSample();
+            Debug.Log($"Reshuffle count: {reshuffleCount}");
+            RemoveAll();
+            CreateAll(_gameModel.Tiles);
+            
         }
 
         private async void TileControllerOnTileSwipeDetected(TileController tile, Vector2Int direction)
@@ -148,6 +146,23 @@ namespace SimpleMatch
             }
         }
 
+        private void CreateAll(IEnumerable<TileModel> tiles)
+        {
+            foreach (var tile in tiles)
+            {
+                CreateTile(tile);
+            }
+        }
+
+        private void RemoveAll()
+        {
+            foreach (var (model, controller) in _modelToTile)
+            {
+                _poolController.Return(model.Description.Id, controller);
+            }
+            _modelToTile.Clear();
+            _tileToModel.Clear();
+        }
 
         private void CreateTile(TileModel tile)
         {
